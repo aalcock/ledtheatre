@@ -41,7 +41,7 @@ set it running.
     >>> sequence.transition(1).target(0, 1).sleep(1).transition(1).target(0, 0)
     >>>
     >>> # And get those LEDs fading in and out!
-    >>> sequence.run()
+    >>> sequence.execute()
 
 
 .. _Adafruit PCA9685 PWM: https://learn.adafruit.com/16-channel-pwm-servo-driver?view=all
