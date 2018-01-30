@@ -167,20 +167,23 @@ class Transition(object):
     """
     Represents a series of LEDs changing values over a specific duration
     """
-    def __init__(self, sequence, duration=0.0):
+    def __init__(self, sequence, duration=0.0, closed=False):
         """
         Creates a new Transition of the specified duration
         :param sequence: The parent Sequence object
         :type sequence: Sequence
         :param duration: the duration in seconds
         :type duration: float
+        :param closed: If true, no LEDTargets can be added to it
+        :type closed: bool
         """
         if duration < 0.0:
             raise ValueError("The duration in a Transition must be greater "
                              "than 0.0")
-        self.sequence = sequence
-        self.duration = duration
-        self.targets = []
+        self._sequence = sequence
+        self._duration = duration
+        self._targets = []
+        self._closed = closed
 
     def target(self, led, brightness):
         """
@@ -192,22 +195,19 @@ class Transition(object):
         :type brightness: float
         :return: This Transition object
         """
-        self.targets.append(LEDTarget(led, brightness))
-        return self
+        if self._closed:
+            raise RuntimeError("This Transition cannot have targets set.")
+        self._targets.append(LEDTarget(led, brightness))
 
-    def next(self):
-        """"""
-        return self.sequence
-
-    def fade(self):
+    def execute(self):
         """
         Run a crossfade over multiple LEDs
         """
-        print("Starting {}".format(self))
+        print("Executing {}".format(self))
 
-        if not self.targets:
+        if not self._targets:
             # This transition has no LEDs to cross-fade, so simply sleep
-            sleep(self.duration)
+            sleep(self._duration)
             return
 
         start = time()
@@ -215,82 +215,108 @@ class Transition(object):
 
         while True:
             length = time() - start
-            if length >= self.duration:
+            if length >= self._duration:
                 # Handles the case where duration == 0
                 fraction = 1.0
             else:
-                fraction = length / float(self.duration)
+                fraction = length / float(self._duration)
 
             print "  Complete: {:02.0f}%".format(fraction*100)
-            for target in self.targets:
+            for target in self._targets:
                 led = target.led
                 brightness = target.brightness
                 brightness = _interpolate(original[led], brightness, fraction)
                 target.set_brightness(brightness)
 
-            if length > self.duration:
+            if length > self._duration:
                 break
 
             sleep(QUANTUM)
 
     def __str__(self):
-        if self.targets:
+        if self._targets:
             targets = ""
-            for target in self.targets:
+            for target in self._targets:
                 targets += ", " + str(target)
-            return "Transition over {}s [{}]".format(self.duration, targets[2:])
+            if self._duration == 0.0:
+                return "Set: {}".format(targets[2:])
+            else:
+                return "Transition [Duration: {}s{}]".format(self._duration, targets)
         else:
-            return "Transition [Pause of {}s]".format(self.duration)
+            return "Pause [Duration: {}s]".format(self._duration)
 
 
 class Sequence(object):
     """
-    Represents a list of Transitions to run sequentially
-
-    Add Transitions by calling Sequence.transition:
-
-        sequence = Sequence()\
-            .transition(5).target(0, 1.0).target(1, 0.5).next()\
-            .transition(2).target(0, 0.0).target(1, 1.0).next()\
-            .transition(1).next()\
-            .transition(5).target(1, 0.0)
-
-        sequence.run()
+    Represents a list of Transitions to run sequentially with a fluent builder
+    API
     """
     def __init__(self):
-        self.transitions = []
+        self._transitions = []
 
     def transition(self, duration=0.0):
         """
         Creates and adds a new Transition to this Sequence
-        :param duration: The duration of the Transition. Leave blank for an
+        :param duration: The _duration of the Transition. Leave blank for an
         instantaneous change to the target values
         :type duration: float
         :return: The newly created Transition
         """
-        trans = Transition(self, duration)
-        self.transitions.append(trans)
-        return trans
+        self._transitions.append(Transition(self, duration))
+        return self
 
-    def run(self):
-        """Runs the Sequence of Transitions"""
-        for transition in self.transitions:
-            transition.fade()
+    def sleep(self, duration):
+        """
+        Pauses the sequence for the configured number of seconds
+        :param duration: Sleeps for this long
+        :type duration: float
+        :return: Sequence
+        """
+        self._transitions.append(Transition(self, duration, True))
+        return self
+
+    def target(self, leds, brightness):
+        # type: (object, float) -> Sequence
+        """
+        Add a new LED target to the Transition, specifying the LED and its
+        brightness
+        :param led: The LED to target, 0..15, or a list of ints
+        :param brightness: The brightess of the LED, 0.0 to 1.0
+        :type brightness: float
+        :return: This Transition object
+        """
+        if not self._transitions:
+            self._transitions.append(Transition(self))
+
+        transition = self._transitions[-1]
+
+        try:
+            for led in leds:
+                transition.target(led, brightness)
+        except TypeError:
+            transition.target(leds, brightness)
+
+        return self
+
+    def execute(self):
+        """Executes the Sequence of Transitions"""
+        for transition in self._transitions:
+            transition.execute()
 
     def __str__(self):
         ret = "Sequence:\n"
-        for transition in self.transitions:
+        for transition in self._transitions:
             ret += "    " + transition
         return ret
 
 
 if __name__ == "__main__":
-    sequence = Sequence()
-    sequence \
-        .transition(0.5).target(0, 1.0).target(1, 0.5).next() \
-        .transition(1.0).target(0, 0.0).target(1, 1.0).next() \
-        .transition(1.0).next() \
-        .transition(2.0).target(1, 0.5).next() \
+    sequence = Sequence() \
+        .target([0, 1], 0) \
+        .transition(0.5).target(0, 1.0).target(1, 0.5) \
+        .transition(1.0).target(0, 0.0).target(1, 1.0) \
+        .sleep(1.0) \
+        .transition(2.0).target(1, 0.5) \
         .transition(0.0).target(1, 0.0)
 
-    sequence.run()
+    sequence.execute()
