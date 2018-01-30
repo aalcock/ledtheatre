@@ -19,18 +19,41 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#import Adafruit_PCA9685
-import time
+from time import time, sleep
 
-# Instantiate a singleton representing the PWM board
-#pwm = Adafruit_PCA9685.PCA9685()
+# How long to sleep each time round the loop while performing a fade
+QUANTUM = 0.05
+# How many addressable LED PWMs on the board?
+LED_COUNT = 16
+# The max value for on/off passed to the PWM - represents 1.0 as max brightness
+PCA6685_MAX_BRIGHTNESS = 4096.0
 
 # Holds the last-set brightness of all LEDs
-brightnesses = [0.0] * 15
+brightnesses = [0.0] * LED_COUNT
+_pwm = None
+_pull_up = False
+_warned = False
 
+def init(pwm, pull_up=False):
+    """
+    Initialse this library by passing in a PCA9685 object
+    :param pwm: The Adafruit_PCA9685.PCA9685 object whose LEDs are to be managed
+    :type pwm: Adafruit_PCA9685.PCA9685
+    :param pull_up: Is the PWM pin connected to source or sink on the LED? If
+                    the PWM is the sink, and the anode is connected to the VCC
+                    pin, then set to True. If the PWM pin provides the anode,
+                    then set to False.
+    :type pull_up: bool
+    """
+    if not pwm:
+        raise ValueError("A Adafruit_PCA9685.PCA9685 object is required")
+    global _pwm, _pull_up, _warned
+    _pwm = pwm
+    _pull_up = pull_up
+    _warned = False
 
 def _validate_led(led):
-    if led < 0 or led > 15:
+    if led < 0 or led > (LED_COUNT - 1):
         raise ValueError("led is a number between 0 and 15")
 
 
@@ -40,7 +63,7 @@ def _validate_brightness(brightness):
 
 
 def _convert_brightness(brightness):
-    return int(4096.0 * brightness)
+    return int(PCA6685_MAX_BRIGHTNESS * brightness)
 
 
 def get_brightness(led):
@@ -51,7 +74,6 @@ def get_brightness(led):
     :return: the brightness where 0.0 represents darkness and 1.0 the brightest.
     """
     _validate_led(led)
-
     return brightnesses[led]
 
 
@@ -70,8 +92,22 @@ def set_brightness(led, brightness):
     prev = brightnesses[led]
     if brightness != prev:
         # Only send the instruction to the board if the new value is different
-        #pwm.set_pwm(led, 0, _convert_brightness(brightness))
         brightnesses[led] = brightness
+        if _pwm:
+            if _pull_up:
+                _pwm.set_pwm(led, 0, _convert_brightness(brightness))
+            else:
+                _pwm.set_pwm(led, _convert_brightness(brightness), 0)
+        else:
+            global _warned
+            if not _warned:
+                _warned = True
+                print "========================================================" \
+                      "=============================================="
+                print "WARNING: ledtheater has not been initialised with a " \
+                      "PCA9685 object - simulating LED brightness changes"
+                print "========================================================" \
+                      "=============================================="
     return prev
 
 
@@ -115,8 +151,14 @@ class LEDTarget(object):
         print("    Setting {} -> {:04.3f}".format(self, brightness))
         return set_brightness(self.led, brightness)
 
+    def get_brightness(self):
+        """
+        :return: The last-known brightness of this LED
+        """
+
     def __str__(self):
-        return "LED#{} [Target {:04.3f}]".format(self.led, self.brightness)
+        return "LED#{} [Current: {:04.3f}, Target: {:04.3f}]".\
+            format(self.led, get_brightness(self.led), self.brightness)
 
 
 class Transition(object):
@@ -163,14 +205,14 @@ class Transition(object):
 
         if not self.targets:
             # This transition has no LEDs to cross-fade, so simply sleep
-            time.sleep(self.duration)
+            sleep(self.duration)
             return
 
-        start = time.time()
+        start = time()
         original = list(brightnesses)
 
         while True:
-            length = time.time() - start
+            length = time() - start
             if length >= self.duration:
                 # Handles the case where duration == 0
                 fraction = 1.0
@@ -187,7 +229,7 @@ class Transition(object):
             if length > self.duration:
                 break
 
-            time.sleep(0.1)
+            sleep(QUANTUM)
 
     def __str__(self):
         if self.targets:
