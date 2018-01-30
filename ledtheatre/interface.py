@@ -167,7 +167,7 @@ class Transition(object):
     """
     Represents a series of LEDs changing values over a specific duration
     """
-    def __init__(self, sequence, duration):
+    def __init__(self, sequence, duration=0.0):
         """
         Creates a new Transition of the specified duration
         :param sequence: The parent Sequence object
