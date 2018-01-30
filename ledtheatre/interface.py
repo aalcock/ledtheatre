@@ -39,7 +39,6 @@ def init(pwm, pull_up=False):
     """
     Initialse this library by passing in a PCA9685 object
     :param pwm: The Adafruit_PCA9685.PCA9685 object whose LEDs are to be managed
-    :type pwm: Adafruit_PCA9685.PCA9685
     :param pull_up: Is the PWM pin connected to source or sink on the LED? If
                     the PWM is the sink, and the anode is connected to the VCC
                     pin, then set to True. If the PWM pin provides the anode,
