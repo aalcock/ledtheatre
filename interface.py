@@ -34,6 +34,7 @@ _pwm = None
 _pull_up = False
 _warned = False
 
+
 def init(pwm, pull_up=False):
     """
     Initialse this library by passing in a PCA9685 object
@@ -51,6 +52,7 @@ def init(pwm, pull_up=False):
     _pwm = pwm
     _pull_up = pull_up
     _warned = False
+
 
 def _validate_led(led):
     if led < 0 or led > (LED_COUNT - 1):
@@ -102,12 +104,12 @@ def set_brightness(led, brightness):
             global _warned
             if not _warned:
                 _warned = True
-                print "========================================================" \
-                      "=============================================="
+                print "===================================================" \
+                      "==================================================="
                 print "WARNING: ledtheater has not been initialised with a " \
                       "PCA9685 object - simulating LED brightness changes"
-                print "========================================================" \
-                      "=============================================="
+                print "===================================================" \
+                      "==================================================="
     return prev
 
 
@@ -279,6 +281,7 @@ class Sequence(object):
         for transition in self.transitions:
             ret += "    " + transition
         return ret
+
 
 if __name__ == "__main__":
     sequence = Sequence()
