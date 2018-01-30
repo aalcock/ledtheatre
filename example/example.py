@@ -20,10 +20,15 @@
 # SOFTWARE.
 
 from ledtheatre import init, Sequence
-#from Adafruit_PCA9685 import PCA9685
 
-# Initialise
-#init(PCA9685())
+try:
+    # Initialise
+    from Adafruit_PCA9685 import PCA9685
+    init(PCA9685())
+except ImportError:
+    # This is not important - ledtheatre will issue a warning later
+    # We will fall back to simulating the PCA9685
+    pass
 
 # A list of all the LED#s used in this example
 ALL = [0, 1, 2]
