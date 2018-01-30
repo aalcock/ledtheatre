@@ -20,28 +20,29 @@
 # SOFTWARE.
 
 from ledtheatre import init, Sequence
-from Adafruit_PCA9685 import PCA9685
+#from Adafruit_PCA9685 import PCA9685
 
 # Initialise
-init(PCA9685())
+#init(PCA9685())
 
 # A list of all the LED#s used in this example
 ALL = [0, 1, 2]
 
 # Two helper Sequences for turning all the LEDs on or off
-on = Sequence().target(ALL, 1)
-off = Sequence().target(ALL, 0)
+on = Sequence().led(ALL, 1)
+off = Sequence().led(ALL, 0)
 
 # A sample Sequence
 fade = Sequence() \
-   .transition(2).target(0, 1).target(1, .1).target(2, .1) \
-   .sleep(1) \
-   .transition(1).target(1, 1) \
-   .transition(1).target(2, 1) \
-   .transition(1).target(ALL, 0)
-
-# Make sure all LEDs are off
-off.execute()
+    .led(ALL, 0) \
+    .transition(0.5).led(0, 1) \
+    .transition(1).led(1, 1).led(0, 0) \
+    .transition(1).led(2, 1).led(1, 0) \
+    .transition(0.5).led(2, 0) \
+    .sleep(1) \
+    .snap().led(ALL, 1) \
+    .sleep(0.2) \
+    .snap().led(ALL, 0)
 
 # Run our Sequence
 fade.execute()

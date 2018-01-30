@@ -29,10 +29,11 @@ LED_COUNT = 16
 PCA6685_MAX_BRIGHTNESS = 4095.0
 
 # Holds the last-set brightness of all LEDs
-brightnesses = [0.0] * LED_COUNT
+_brightnesses = [None] * LED_COUNT
 _pwm = None
 _pull_up = False
 _warned = False
+_default_brightness = 0.0
 
 
 def init(pwm, pull_up=False):
@@ -47,9 +48,13 @@ def init(pwm, pull_up=False):
     """
     if not pwm:
         raise ValueError("A Adafruit_PCA9685.PCA9685 object is required")
-    global _pwm, _pull_up, _warned
+    global _pwm, _pull_up, _warned, _default_brightness
     _pwm = pwm
     _pull_up = pull_up
+    if _pull_up:
+        _default_brightness = 1.0
+    else:
+        _default_brightness = 0.0
     _warned = False
 
 
@@ -67,17 +72,6 @@ def _convert_brightness(brightness):
     return int(PCA6685_MAX_BRIGHTNESS * brightness)
 
 
-def get_brightness(led):
-    """
-    Gets the current brightness of an LED.
-    :param led: The pin number for the LED on the board (0..15)
-    :type led: int
-    :return: the brightness where 0.0 represents darkness and 1.0 the brightest.
-    """
-    _validate_led(led)
-    return brightnesses[led]
-
-
 def set_brightness(led, brightness):
     """
     Sets the brightness of an LED returning the previous value.
@@ -90,10 +84,11 @@ def set_brightness(led, brightness):
     _validate_led(led)
     _validate_brightness(brightness)
 
-    prev = brightnesses[led]
+    prev = _brightnesses[led]
     if brightness != prev:
+        print("    Setting LED#{} -> {:04.3f}".format(led, brightness))
         # Only send the instruction to the board if the new value is different
-        brightnesses[led] = brightness
+        _brightnesses[led] = brightness
         if _pwm:
             if _pull_up:
                 _pwm.set_pwm(led, _convert_brightness(brightness), 0)
@@ -142,24 +137,14 @@ class LEDTarget(object):
         self.led = led
         self.brightness = brightness
 
-    def set_brightness(self, brightness):
-        """
-        Sets the LED brightness
-        :param brightness: from 0.0 to 1.0. 0.0 means the dark
-        :type brightness: float
-        :return: The previous brightness value of the LED
-        """
-        print("    Setting {} -> {:04.3f}".format(self, brightness))
-        return set_brightness(self.led, brightness)
-
-    def get_brightness(self):
-        """
-        :return: The last-known brightness of this LED
-        """
-
     def __str__(self):
-        return "LED#{} [Current: {:04.3f}, Target: {:04.3f}]".\
-            format(self.led, get_brightness(self.led), self.brightness)
+        current = _brightnesses[self.led]
+        if current is not None:
+            return "LED#{} [Current: {:04.3f}, Target: {:04.3f}]".\
+                format(self.led, current, self.brightness)
+        else:
+            return "LED#{} [Current: Unknown, Target: {:04.3f}]". \
+                format(self.led, self.brightness)
 
 
 class Transition(object):
@@ -184,7 +169,7 @@ class Transition(object):
         self._targets = []
         self._closed = closed
 
-    def target(self, led, brightness):
+    def led(self, led, brightness):
         """
         Add a new LED target to the Transition, specifying the LED and its
         brightness
@@ -210,7 +195,7 @@ class Transition(object):
             return
 
         start = time()
-        original = list(brightnesses)
+        original = [ x if x else _default_brightness for x in _brightnesses ]
 
         while True:
             length = time() - start
@@ -220,12 +205,14 @@ class Transition(object):
             else:
                 fraction = length / float(self._duration)
 
-            print "  Complete: {:02.0f}%".format(fraction*100)
+            if self._duration:
+                print "  Complete: {:02.0f}%".format(fraction*100)
+
             for target in self._targets:
                 led = target.led
                 brightness = target.brightness
                 brightness = _interpolate(original[led], brightness, fraction)
-                target.set_brightness(brightness)
+                set_brightness(led, brightness)
 
             if length > self._duration:
                 break
@@ -238,7 +225,7 @@ class Transition(object):
             for target in self._targets:
                 targets += ", " + str(target)
             if self._duration == 0.0:
-                return "Set: {}".format(targets[2:])
+                return "Snap: {}".format(targets[2:])
             else:
                 return "Transition [Duration: {}s{}]".format(self._duration, targets)
         else:
@@ -274,7 +261,16 @@ class Sequence(object):
         self._transitions.append(Transition(self, duration, True))
         return self
 
-    def target(self, leds, brightness):
+    def snap(self):
+        """
+        Creates an instantaneous transition (a snap) for setting LEDs without
+        any fade
+        :return: Sequence
+        """
+        self._transitions.append(Transition(self))
+        return self
+
+    def led(self, leds, brightness):
         # type: (object, float) -> Sequence
         """
         Add a new LED target to the Transition, specifying the LED and its
@@ -291,9 +287,9 @@ class Sequence(object):
 
         try:
             for led in leds:
-                transition.target(led, brightness)
+                transition.led(led, brightness)
         except TypeError:
-            transition.target(leds, brightness)
+            transition.led(leds, brightness)
 
         return self
 
@@ -307,15 +303,3 @@ class Sequence(object):
         for transition in self._transitions:
             ret += "    " + transition
         return ret
-
-
-if __name__ == "__main__":
-    sequence = Sequence() \
-        .target([0, 1], 0) \
-        .transition(0.5).target(0, 1.0).target(1, 0.5) \
-        .transition(1.0).target(0, 0.0).target(1, 1.0) \
-        .sleep(1.0) \
-        .transition(2.0).target(1, 0.5) \
-        .transition(0.0).target(1, 0.0)
-
-    sequence.execute()
