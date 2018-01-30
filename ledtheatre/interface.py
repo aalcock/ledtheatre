@@ -260,10 +260,11 @@ class Sequence(object):
     def __init__(self):
         self.transitions = []
 
-    def transition(self, duration):
+    def transition(self, duration=0.0):
         """
         Creates and adds a new Transition to this Sequence
-        :param duration: The duration of the Transition
+        :param duration: The duration of the Transition. Leave blank for an
+        instantaneous change to the target values
         :type duration: float
         :return: The newly created Transition
         """
