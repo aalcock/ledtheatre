@@ -26,7 +26,7 @@ QUANTUM = 0.05
 # How many addressable LED PWMs on the board?
 LED_COUNT = 16
 # The max value for on/off passed to the PWM - represents 1.0 as max brightness
-PCA6685_MAX_BRIGHTNESS = 4096.0
+PCA6685_MAX_BRIGHTNESS = 4095.0
 
 # Holds the last-set brightness of all LEDs
 brightnesses = [0.0] * LED_COUNT
@@ -97,9 +97,9 @@ def set_brightness(led, brightness):
         brightnesses[led] = brightness
         if _pwm:
             if _pull_up:
-                _pwm.set_pwm(led, 0, _convert_brightness(brightness))
-            else:
                 _pwm.set_pwm(led, _convert_brightness(brightness), 0)
+            else:
+                _pwm.set_pwm(led, 0, _convert_brightness(brightness))
         else:
             global _warned
             if not _warned:
