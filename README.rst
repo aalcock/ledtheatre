@@ -45,5 +45,17 @@ set it running.
     >>> # And get those LEDs fading in and out!
     >>> sequence.execute()
 
+Installation
+============
+
+To install the library from source run the following commands on a Raspberry Pi
+or other Debian-based OS system:
+
+    sudo apt-get install git build-essential python-dev
+    cd ~
+    git clone https://github.com/aalcock/ledtheatre
+    cd ledtheatre
+    sudo python setup.py install
+
 .. _Adafruit PCA9685 PWM: https://learn.adafruit.com/16-channel-pwm-servo-driver?view=all
 .. _Adafruit_PCA9685: https://github.com/adafruit/Adafruit_Python_PCA9685
