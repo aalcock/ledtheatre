@@ -31,11 +31,11 @@ except ImportError:
     pass
 
 # A list of all the LED#s used in this example
-ALL = [0, 1, 2]
+MAX_LEDS = 16
+ALL = range(0, MAX_LEDS)
 
-# Two helper Sequences for turning all the LEDs on or off
-on = Sequence().led(ALL, 1)
-off = Sequence().led(ALL, 0)
+# Turn off all LEDs
+Sequence().led(ALL, 0).execute()
 
 # A sample Sequence
 fade = Sequence() \
@@ -54,7 +54,6 @@ fade.execute()
 
 # A programmatic example: Chasing LEDs
 
-MAX_LEDS = 16
 chase = Sequence()
 for i in range(0, MAX_LEDS):
     chase.transition(0.5)
