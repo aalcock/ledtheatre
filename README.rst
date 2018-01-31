@@ -3,6 +3,8 @@ ledtheatre
 
 A simple application to control the `Adafruit PCA9685 PWM`_ control board.
 
+It requires the `Adafruit_PCA9685`_ library installed.
+
 You can control up to 16 LEDs. Build a simple, fluent-style data object
 describing the changes to each LED intensity and how long the change takes, and
 set it running.
@@ -44,3 +46,4 @@ set it running.
     >>> sequence.execute()
 
 .. _Adafruit PCA9685 PWM: https://learn.adafruit.com/16-channel-pwm-servo-driver?view=all
+.. _Adafruit_PCA9685: https://github.com/adafruit/Adafruit_Python_PCA9685
