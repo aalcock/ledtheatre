@@ -26,7 +26,7 @@ QUANTUM = 0.05
 # How many addressable LED PWMs on the board?
 LED_COUNT = 16
 # The max value for on/off passed to the PWM - represents 1.0 as max brightness
-PCA6685_MAX_BRIGHTNESS = 4095.0
+PCA6685_MAX_BRIGHTNESS = 4095
 
 # Holds the last-set brightness of all LEDs
 _brightnesses = [None] * LED_COUNT
@@ -86,14 +86,15 @@ def set_brightness(led, brightness):
 
     prev = _brightnesses[led]
     if brightness != prev:
-        print("    Setting LED#{} -> {:04.3f}".format(led, brightness))
+        pwm_duty_cycle = _convert_brightness(brightness)
+        print("    Setting LED#{} to {}% = {} duty cycle".format(led, int(brightness * 100), pwm_duty_cycle))
         # Only send the instruction to the board if the new value is different
         _brightnesses[led] = brightness
         if _pwm:
             if _pull_up:
-                _pwm.set_pwm(led, _convert_brightness(brightness), 0)
+                _pwm.set_pwm(led, pwm_duty_cycle, 0)
             else:
-                _pwm.set_pwm(led, 0, _convert_brightness(brightness))
+                _pwm.set_pwm(led, 0, PCA6685_MAX_BRIGHTNESS - pwm_duty_cycle)
         else:
             global _warned
             if not _warned:
