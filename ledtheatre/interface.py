@@ -244,7 +244,7 @@ class Sequence(object):
         :param duration: The _duration of the Transition. Leave blank for an
         instantaneous change to the target values
         :type duration: float
-        :return: The newly created Transition
+        :return: This Sequence object
         """
         self._transitions.append(Transition(self, duration))
         return self
@@ -254,7 +254,7 @@ class Sequence(object):
         Pauses the sequence for the configured number of seconds
         :param duration: Sleeps for this long
         :type duration: float
-        :return: Sequence
+        :return: This Sequence
         """
         self._transitions.append(Transition(self, duration, True))
         return self
@@ -276,7 +276,7 @@ class Sequence(object):
         :param led: The LED to target, 0..15, or a list of ints
         :param brightness: The brightess of the LED, 0.0 to 1.0
         :type brightness: float
-        :return: This Transition object
+        :return: This Sequence object
         """
         if not self._transitions:
             self._transitions.append(Transition(self))
@@ -291,10 +291,14 @@ class Sequence(object):
 
         return self
 
-    def execute(self):
-        """Executes the Sequence of Transitions"""
-        for transition in self._transitions:
-            transition.execute()
+    def execute(self, count=1):
+        """Executes the Sequence of Transitions
+        :param count: The number of times to run the Sequence
+        :type count: int"""
+        for _ in range(0, count):
+            for transition in self._transitions:
+                transition.execute()
+        return self
 
     def __str__(self):
         ret = "Sequence:\n"

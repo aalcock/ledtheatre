@@ -51,3 +51,16 @@ fade = Sequence() \
 
 # Run our Sequence
 fade.execute()
+
+# A programmatic example: Chasing LEDs
+
+MAX_LEDS = 16
+chase = Sequence()
+for i in range(0, MAX_LEDS):
+    chase.transition(0.5)
+    chase.led(i, 0)
+    chase.led((i + 1) % MAX_LEDS, 0.5)
+    chase.led((i + 2) % MAX_LEDS, 1.0)
+
+# Run the chase 10 times
+chase.execute(10)
