@@ -89,9 +89,9 @@ def set_brightness(led, brightness):
         _brightnesses[led] = brightness
         if _pwm:
             if _pull_up:
-                _pwm.set_pwm(led, pwm_duty_cycle, 0)
-            else:
                 _pwm.set_pwm(led, 0, PCA6685_MAX_BRIGHTNESS - pwm_duty_cycle)
+            else:
+                _pwm.set_pwm(led, pwm_duty_cycle, 0)
         else:
             global _warned
             if not _warned:
@@ -193,7 +193,7 @@ class Transition(object):
             return
 
         start = time()
-        original = [ x if x else _default_brightness for x in _brightnesses ]
+        original = [ x if x is not None else _default_brightness for x in _brightnesses ]
 
         while True:
             length = time() - start
@@ -204,7 +204,7 @@ class Transition(object):
                 fraction = length / float(self._duration)
 
             if self._duration:
-                print "  Complete: {:02.0f}%".format(fraction*100)
+                print "  Now at {:02.0f}%".format(fraction*100)
 
             for target in self._targets:
                 led = target.led

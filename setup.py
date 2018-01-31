@@ -26,7 +26,7 @@ def readme():
         return f.read()
 
 setup(name='ledtheatre',
-      version='0.1.2',
+      version='0.1.3',
       description='Control LED lights on the Adafruit PCA9685 PWM card',
       long_description=readme(),
       classifiers=[
