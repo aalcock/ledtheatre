@@ -81,9 +81,6 @@ def set_brightness(led, brightness):
     :type brightness: float:
     :return: the previous brightness
     """
-    _validate_led(led)
-    _validate_brightness(brightness)
-
     prev = _brightnesses[led]
     if brightness != prev:
         pwm_duty_cycle = _convert_brightness(brightness)
