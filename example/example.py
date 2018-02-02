@@ -24,14 +24,14 @@ from ledtheatre import init, Sequence
 try:
     # Initialise
     from Adafruit_PCA9685 import PCA9685
-    init(PCA9685())
+    init(PCA9685(), pull_up=True)
 except ImportError:
     # This is not important - ledtheatre will issue a warning later
     # We will fall back to simulating the PCA9685
     pass
 
 # A list of all the LED#s used in this example
-MAX_LEDS = 16
+MAX_LEDS = 8
 ALL = range(0, MAX_LEDS)
 
 # Turn off all LEDs
@@ -39,11 +39,10 @@ Sequence().led(ALL, 0).execute()
 
 # A sample Sequence
 fade = Sequence() \
-    .led(ALL, 0) \
     .transition(0.5).led(0, 1) \
     .transition(1).led(1, 1).led(0, 0) \
-    .transition(1).led(2, 1).led(1, 0) \
-    .transition(0.5).led(2, 0) \
+    .transition(1).led(0, 0).led(1, 1) \
+    .transition(0.5).led(1, 0) \
     .sleep(1) \
     .snap().led(ALL, 1) \
     .sleep(0.2) \
@@ -53,13 +52,15 @@ fade = Sequence() \
 fade.execute()
 
 # A programmatic example: Chasing LEDs
-
 chase = Sequence()
 for i in range(0, MAX_LEDS):
-    chase.transition(0.5)
+    chase.transition(0.25)
     chase.led(i, 0)
     chase.led((i + 1) % MAX_LEDS, 0.5)
     chase.led((i + 2) % MAX_LEDS, 1.0)
 
-# Run the chase 10 times
-chase.execute(10)
+# Run the chase 3 times
+chase.execute(3)
+
+# And turn them all off
+Sequence().led(ALL, 0).execute()
